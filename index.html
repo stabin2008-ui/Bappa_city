@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Bappa's City: A Ganesh Chaturthi Festival Adventure. Run through vibrant festival streets, collect modaks, dodge obstacles, make safety decisions, and reach the grand Visarjan finale!">
+  <meta name="theme-color" content="#FF9933">
+  <title>Bappa's City — A Ganesh Chaturthi Festival Adventure</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <!-- Main Game Shell -->
+  <div id="game-container" role="main" aria-label="Bappa's City Game">
+    <!-- WebGL / 2D Canvas Layer -->
+    <canvas id="game-canvas" width="800" height="600" aria-label="Festival Street Gameplay View"></canvas>
+
+    <!-- Floating In-Game HUD Overlay -->
+    <div id="hud" class="hud-layer hidden" aria-live="polite">
+      <!-- Top Status Bar -->
+      <div class="hud-top-bar">
+        <div class="hud-stat score-box">
+          <span class="hud-label">SCORE</span>
+          <span id="hud-score" class="hud-value">0</span>
+          <span id="hud-combo" class="hud-combo-badge hidden">x1</span>
+        </div>
+
+        <div class="hud-stat distance-box">
+          <span class="hud-label">DISTANCE</span>
+          <span id="hud-distance" class="hud-value">0 m</span>
+        </div>
+
+        <div class="hud-stat modak-box">
+          <span class="hud-icon">🍯</span>
+          <span id="hud-modaks" class="hud-value">0</span>
+        </div>
+
+        <div class="hud-stat coin-box">
+          <span class="hud-icon">🪙</span>
+          <span id="hud-coins" class="hud-value">0</span>
+        </div>
+
+        <div class="hud-actions">
+          <button id="btn-sound-toggle" class="hud-btn" aria-label="Toggle Sound" title="Toggle Sound">🔊</button>
+          <button id="btn-pause-game" class="hud-btn" aria-label="Pause Game" title="Pause Game">⏸</button>
+        </div>
+      </div>
+
+      <!-- Health / Safety Bar & Blessing Bar Row -->
+      <div class="hud-meters-bar">
+        <!-- Safety Meter -->
+        <div class="meter-card safety-meter-card">
+          <div class="meter-header">
+            <span class="meter-title">FESTIVAL SAFETY</span>
+            <span id="hud-safety-pct" class="meter-val">100%</span>
+          </div>
+          <div class="meter-track">
+            <div id="hud-safety-fill" class="meter-fill safety-fill" style="width: 100%;"></div>
+          </div>
+        </div>
+
+        <!-- Bappa's Blessing Meter -->
+        <div class="meter-card blessing-meter-card">
+          <div class="meter-header">
+            <span class="meter-title">BAPPA'S BLESSING</span>
+            <span id="hud-blessing-status" class="meter-val">COLLECT MODAKS</span>
+          </div>
+          <div class="meter-track">
+            <div id="hud-blessing-fill" class="meter-fill blessing-fill" style="width: 0%;"></div>
+          </div>
+          <div id="hud-blessing-ready-badge" class="blessing-ready-pulse hidden">
+            ⚡ BLESSING READY! (SPACE / POWER)
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Power-ups Bar -->
+      <div id="hud-active-buffs" class="active-buffs-container" aria-label="Active Powerups"></div>
+    </div>
+
+    <!-- Mobile Touch Controls -->
+    <div id="mobile-controls" class="mobile-controls-layer" aria-label="Mobile Controls">
+      <div class="touch-cluster-left">
+        <button id="touch-left" class="touch-btn" aria-label="Move Left" title="Move Left">
+          <span class="touch-icon">⮜</span>
+          <span class="touch-text">LEFT</span>
+        </button>
+        <button id="touch-right" class="touch-btn" aria-label="Move Right" title="Move Right">
+          <span class="touch-icon">⮞</span>
+          <span class="touch-text">RIGHT</span>
+        </button>
+      </div>
+      <div class="touch-cluster-right">
+        <button id="touch-power" class="touch-btn power-btn" aria-label="Activate Blessing / Power" title="Activate Blessing">
+          <span class="touch-icon">⚡</span>
+          <span class="touch-text">POWER</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- UI Modal Overlays -->
+
+    <!-- 1. MAIN MENU SCREEN -->
+    <div id="menu-screen" class="ui-screen active">
+      <div class="menu-glass-card">
+        <div class="festival-motif">🕉️ 🪔 🌸</div>
+        <h1 class="game-title">BAPPA'S CITY</h1>
+        <p class="game-subtitle">A Ganesh Chaturthi Festival Adventure</p>
+
+        <div class="menu-decor-banner">
+          <span>🚩 Ganpati Bappa Morya 🚩</span>
+        </div>
+
+        <div class="menu-stats-preview">
+          <div class="preview-stat">
+            <span class="stat-label">HIGH SCORE</span>
+            <span id="menu-high-score" class="stat-num">0</span>
+          </div>
+          <div class="preview-stat">
+            <span class="stat-label">FESTIVAL COINS</span>
+            <span id="menu-coin-count" class="stat-num">0 🪙</span>
+          </div>
+        </div>
+
+        <div class="menu-buttons-group">
+          <button id="btn-play" class="primary-btn pulse-glow">
+            <span class="btn-icon">▶</span> PLAY ADVENTURE
+          </button>
+          <div class="secondary-btn-row">
+            <button id="btn-missions" class="secondary-btn">
+              <span class="btn-icon">📜</span> MISSIONS
+            </button>
+            <button id="btn-shop" class="secondary-btn">
+              <span class="btn-icon">🏪</span> FESTIVAL SHOP
+            </button>
+          </div>
+          <button id="btn-howto" class="tertiary-btn">
+            <span class="btn-icon">❓</span> HOW TO PLAY
+          </button>
+        </div>
+
+        <div class="menu-footer">
+          <span class="festive-hint">💡 Guide the procession safely to the sacred Visarjan!</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. HOW TO PLAY SCREEN -->
+    <div id="howto-screen" class="ui-screen hidden">
+      <div class="modal-glass-card">
+        <div class="modal-header">
+          <h2>FESTIVAL GUIDE</h2>
+          <button id="btn-close-howto" class="close-icon-btn" aria-label="Close Guide">✕</button>
+        </div>
+
+        <div class="modal-body howto-content">
+          <div class="guide-grid">
+            <div class="guide-card">
+              <div class="guide-card-icon">🏃</div>
+              <h3>Controls</h3>
+              <p><strong>Desktop:</strong> Left / Right Arrow or A / D to switch lanes.<br>
+              <strong>Space:</strong> Activate Bappa's Blessing.<br>
+              <strong>P:</strong> Pause game.<br>
+              <strong>Mobile:</strong> Tap LEFT, RIGHT & POWER buttons.</p>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon">🍯</div>
+              <h3>Modaks & Combos</h3>
+              <p>Collect golden Modaks to increase score and build combo multipliers up to <strong>5x</strong>. Modaks also charge <strong>Bappa's Blessing</strong> meter!</p>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon">🚧</div>
+              <h3>Obstacles & Safety</h3>
+              <p>Dodge barricades, dhol drums, flower crates, and carts. Collisions damage safety and break combos. Fair collision boxes give clean reaction space.</p>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon">🤝</div>
+              <h3>Festival Events</h3>
+              <p>Encounter lost children, blocked processions, and fallen decorations. Your quick moral choices determine <strong>Festival Safety</strong> and <strong>Reputation</strong>!</p>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon">🌅</div>
+              <h3>Day to Night</h3>
+              <p>Journey from peaceful morning to vibrant sunset, dusky evening, and celebratory midnight lit with thousands of diyas.</p>
+            </div>
+
+            <div class="guide-card">
+              <div class="guide-card-icon">🌊</div>
+              <h3>Visarjan Finale</h3>
+              <p>Travel 2800 meters to reach the sacred ghat for the grand Visarjan celebration with fireworks and floating diyas!</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btn-howto-back" class="primary-btn">GOT IT, LET'S PLAY!</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. MISSIONS SCREEN -->
+    <div id="missions-screen" class="ui-screen hidden">
+      <div class="modal-glass-card">
+        <div class="modal-header">
+          <h2>FESTIVAL MISSIONS</h2>
+          <button id="btn-close-missions" class="close-icon-btn" aria-label="Close Missions">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="section-desc">Complete festival duties to earn sacred blessings and bonus Festival Coins!</p>
+          <div id="missions-list" class="missions-container"></div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btn-missions-back" class="secondary-btn">BACK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. SHOP SCREEN -->
+    <div id="shop-screen" class="ui-screen hidden">
+      <div class="modal-glass-card">
+        <div class="modal-header">
+          <h2>FESTIVAL PRASAD SHOP</h2>
+          <div class="shop-balance">
+            <span>COINS:</span>
+            <span id="shop-coin-display" class="coin-highlight">0 🪙</span>
+          </div>
+          <button id="btn-close-shop" class="close-icon-btn" aria-label="Close Shop">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="section-desc">Upgrade power-ups and sacred protections for your festival run (In-memory upgrades):</p>
+          <div id="shop-items-list" class="shop-grid"></div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="btn-shop-back" class="secondary-btn">BACK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 5. INTERACTIVE FESTIVAL EVENT MODAL -->
+    <div id="event-modal" class="ui-screen hidden event-overlay">
+      <div class="event-glass-card">
+        <div class="event-badge" id="event-badge-icon">🪔</div>
+        <span class="event-category">FESTIVAL SITUATION</span>
+        <h2 id="event-title" class="event-title">ROAD BLOCKED</h2>
+        <p id="event-desc" class="event-desc">A grand procession is carrying the sacred idol. How will you navigate the street?</p>
+
+        <div id="event-choices-container" class="event-choices-group">
+          <!-- Populated dynamically with genuine choice buttons -->
+        </div>
+
+        <div class="event-timer-bar">
+          <div id="event-timer-fill" class="event-timer-fill"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6. PAUSE SCREEN -->
+    <div id="pause-screen" class="ui-screen hidden">
+      <div class="menu-glass-card pause-card">
+        <div class="festival-motif">⏸️ 🪔 🕉️</div>
+        <h2>FESTIVAL PAUSED</h2>
+        <p class="pause-quote">"Devotion in every step, patience in every breath."</p>
+
+        <div class="menu-buttons-group">
+          <button id="btn-resume" class="primary-btn">
+            <span class="btn-icon">▶</span> RESUME ADVENTURE
+          </button>
+          <button id="btn-pause-howto" class="secondary-btn">
+            <span class="btn-icon">❓</span> HOW TO PLAY
+          </button>
+          <button id="btn-restart" class="secondary-btn danger-hover">
+            <span class="btn-icon">🔄</span> RESTART RUN
+          </button>
+          <button id="btn-pause-home" class="tertiary-btn">
+            <span class="btn-icon">🏠</span> MAIN MENU
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. GAME OVER SCREEN -->
+    <div id="gameover-screen" class="ui-screen hidden">
+      <div class="menu-glass-card gameover-card">
+        <div class="festival-motif">🪔 🕊️ 🪔</div>
+        <h2 class="gameover-title">PROCESSION PAUSED</h2>
+        <p class="gameover-subtitle">Festival safety dropped too low! Take a breath and try again.</p>
+
+        <div class="results-stats-grid">
+          <div class="res-stat-cell">
+            <span class="res-label">SCORE</span>
+            <span id="gameover-score" class="res-value">0</span>
+          </div>
+          <div class="res-stat-cell">
+            <span class="res-label">DISTANCE</span>
+            <span id="gameover-distance" class="res-value">0 m</span>
+          </div>
+          <div class="res-stat-cell">
+            <span class="res-label">MODAKS</span>
+            <span id="gameover-modaks" class="res-value">0</span>
+          </div>
+          <div class="res-stat-cell">
+            <span class="res-label">SAFETY</span>
+            <span id="gameover-safety" class="res-value">0%</span>
+          </div>
+        </div>
+
+        <div class="menu-buttons-group">
+          <button id="btn-gameover-restart" class="primary-btn">
+            <span class="btn-icon">🔄</span> RETRY RUN
+          </button>
+          <button id="btn-gameover-home" class="secondary-btn">
+            <span class="btn-icon">🏠</span> MAIN MENU
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 8. FINAL VISARJAN RESULTS SCREEN -->
+    <div id="results-screen" class="ui-screen hidden">
+      <div class="modal-glass-card results-card">
+        <div class="celebration-sparkle">🎆 🪔 🌺 🪔 🎆</div>
+        <h1 class="results-title">FESTIVAL COMPLETE!</h1>
+        <p class="results-subtitle">YOU ARE A FESTIVAL HERO!</p>
+        <div id="results-hero-title" class="hero-title-badge">SUPREME SEVAK OF BAPPA</div>
+
+        <!-- Comprehensive Run Metrics -->
+        <div class="results-stats-grid">
+          <div class="res-stat-cell highlight-cell">
+            <span class="res-label">TOTAL SCORE</span>
+            <span id="results-score" class="res-value">0</span>
+          </div>
+          <div class="res-stat-cell">
+            <span class="res-label">MODAKS COLLECTED</span>
+            <span id="results-modaks" class="res-value">0</span>
+          </div>
+          <div class="res-stat-cell">
+            <span class="res-label">DISTANCE TRAVELED</span>
+            <span id="results-distance" class="res-value">2800 m</span>
+          </div>
+          <div class="res-stat-cell">
+            <span class="res-label">MAX COMBO</span>
+            <span id="results-combo" class="res-value">x1</span>
+          </div>
+        </div>
+
+        <!-- 5 Festival Reputation Dimensions -->
+        <div class="reputation-summary-box">
+          <h3 class="rep-heading">FESTIVAL REPUTATION HONORS</h3>
+          <div class="rep-bars-grid">
+            <div class="rep-bar-row">
+              <span class="rep-name">DEVOTION</span>
+              <div class="rep-bar-track">
+                <div id="rep-bar-devotion" class="rep-bar-fill devotion-fill" style="width: 80%;"></div>
+              </div>
+              <span id="rep-val-devotion" class="rep-num">80</span>
+            </div>
+            <div class="rep-bar-row">
+              <span class="rep-name">SAFETY</span>
+              <div class="rep-bar-track">
+                <div id="rep-bar-safety" class="rep-bar-fill safety-fill" style="width: 85%;"></div>
+              </div>
+              <span id="rep-val-safety" class="rep-num">85</span>
+            </div>
+            <div class="rep-bar-row">
+              <span class="rep-name">CLEANLINESS</span>
+              <div class="rep-bar-track">
+                <div id="rep-bar-cleanliness" class="rep-bar-fill cleanliness-fill" style="width: 75%;"></div>
+              </div>
+              <span id="rep-val-cleanliness" class="rep-num">75</span>
+            </div>
+            <div class="rep-bar-row">
+              <span class="rep-name">COMMUNITY</span>
+              <div class="rep-bar-track">
+                <div id="rep-bar-community" class="rep-bar-fill community-fill" style="width: 90%;"></div>
+              </div>
+              <span id="rep-val-community" class="rep-num">90</span>
+            </div>
+            <div class="rep-bar-row">
+              <span class="rep-name">SPEED</span>
+              <div class="rep-bar-track">
+                <div id="rep-bar-speed" class="rep-bar-fill speed-fill" style="width: 70%;"></div>
+              </div>
+              <span id="rep-val-speed" class="rep-num">70</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="results-actions-group">
+          <button id="btn-results-replay" class="primary-btn pulse-glow">
+            <span class="btn-icon">🔄</span> REPLAY ADVENTURE
+          </button>
+          <button id="btn-results-missions" class="secondary-btn">
+            <span class="btn-icon">📜</span> MISSIONS
+          </button>
+          <button id="btn-results-home" class="tertiary-btn">
+            <span class="btn-icon">🏠</span> HOME
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Pure Static JavaScript Entry Point -->
+  <script src="./game.js"></script>
+</body>
+</html>
